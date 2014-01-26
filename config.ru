@@ -1,6 +1,9 @@
 require 'rack'
 require './rack_app'
-require './router'
+require './multiplier'
+require './adder'
+require './divider'
+require './substracter'
 
 # If you happen to instantiate a Rack object inside config.ru, it will be reused as long as Rack application runs.
 # It means that the content of instance variables will be carried between requests if not set otherwise.
@@ -11,7 +14,10 @@ require './router'
 # run RackApp.new
 
 # Adds a middleware to the stack
-use Router
+use Multiplier
+use Adder
+use Divider
+use Substracter
 # Runs a rack application in which the #call method is a class method
 run RackApp
 
