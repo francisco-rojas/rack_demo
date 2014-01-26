@@ -287,6 +287,13 @@ def call(env)
 end
 ```
 
+You can use 'env' to pass custom values between middleware like this:
+```Ruby
+def call(env)
+  env['account'] = Account.find(1)
+  @app.call(env)
+end
+```
 **It is important to note that modifying Rack::Request instance also modifies underlying env hash.**
 
 ```Ruby

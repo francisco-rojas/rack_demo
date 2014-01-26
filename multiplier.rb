@@ -4,8 +4,13 @@ class Multiplier
   end
 
   def call(env)
+    # Process Request
     env["QUERY_STRING"] = (env["QUERY_STRING"].to_i * env["QUERY_STRING"].to_i).to_s
     env["PROCESSED_BY"] = "Multiplier"
-    @app.call(env)
+    # Pass control to next middleware or app
+    resp = @app.call(env)
+    # Process Response
+    resp[2] << "-Back to Multiplier"
+    resp
   end
 end
