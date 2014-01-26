@@ -20,7 +20,7 @@ The server
 ----------
 The server, according to Rack´s specification, will convert the HTTP request to a simple Ruby Hash, as shown below:
 
-`
+```Ruby
 # Request by the browser
 
 GET /users HTTP/1.1
@@ -37,7 +37,8 @@ env = {
   ...
   ...
 }
-`
+```
+
 The *env* variable is sent to the app. The app does all its work based on the information
 it got from this variable and returns a response to the server. This response is made
 exactly how Rack specified, so that the server can understand it.
@@ -48,7 +49,7 @@ What the app gives back to the server is a simple Array. This array has exactly 
 in it. First is the HTTP status code of the response, second is a Hash of HTTP headers
 and the third element is a body object *(which must respond to each)*.
 
-`
+```Ruby
 # Rails app to server
 
 [
@@ -63,7 +64,8 @@ and the third element is a body object *(which must respond to each)*.
     '</html>'
   ]
 ]
-`
+```
+
 The server can finally take this array and convert it into a valid HTTP response and
 send it to the browser (client).
 
@@ -74,7 +76,7 @@ Now there are certain rules about what things the Ruby app should compose of, to
 to work with that *env* variable from the server. In its most basic sense this is what the
 Rack app should contain:
 
-`
+```Ruby
 class App
   def call(env)
     [
@@ -84,7 +86,7 @@ class App
     ]
   end
 end
-`
+```
 
 The app should implement a method named *call* which accepts a parameter *env*. And this method
 should return the resultant Array. Any app that confirms to this rule is a Rack application.
@@ -96,13 +98,13 @@ It means that the content of instance variables will be carried between requests
 **It is a better idea to always define #call as a class method, i.e. pass in the class instead of an object inside
 rackup configuration file.**
 
-`
+```Ruby
 # Runs a rack application in which the 'call' method is an instance method
 run RackApp.new
 
 # Runs a rack application in which the 'call' method is a class method
 run RackApp
-`
+```
 
 Rack Application vs. Rack Middleware
 ------------------------------------
@@ -112,19 +114,20 @@ applications, Rack middleware has knowledge of other Rack applications or middle
 
 The simplest Rack application (in class instead of lambda form) would be something like this:
 
-`
+```Ruby
 class RackApp
   def call(env)
     [200, {'Content-Type' => 'text/plain'}, ["Hello world!"]]
   end
 end
-`
+```
+
 Note that because the method required by the Rack specification is *call* and (by no coincidence)
 this is how you execute Procs and lambdas in Ruby, the same thing can be written like so:
 
-`
+```Ruby
 lambda{|env| [200, {'Content-Type' => 'text/plain'}, ["Hello world!"]]}
-`
+```
 
 This hello world app would simply output “Hello world!” from any URL on the server that was running it.
 But what if we want to filter the request? What if we want to add some headers before the main
@@ -132,7 +135,7 @@ application gets it, or perhaps translate the response into pig latin after the 
 We have no way to say “before this” or “after that” in a Rack application. This is where middleware comes
 into place:
 
-`
+```Ruby
 class RackMiddleware
   def initialize(app)
     @app = app
@@ -144,7 +147,7 @@ class RackMiddleware
     @app.call(env)
   end
 end
-`
+```
 
 A Rack middleware has an initializer that takes a Rack application or middleware as parameter. This way,
 it can perform actions before, after, or around the Rack application because it has access to it during
@@ -158,15 +161,15 @@ The 'use' keyword is used to define middlewares to instantiate, while by 'run' k
 
 That’s why this works in a config.ru file:
 
-`
+```Ruby
 run lambda{|env| [200, {'Content-Type' => 'text/plain'}, ["Hello world!"]]}
-`
+```
 
 But this does not:
 
-`
+```Ruby
 use lambda{|env| [200, {'Content-Type' => 'text/plain'}, ["Hello world!"]]}
-`
+```
 
 Because the 'use' keyword indicates a Middleware that should be instantiated at call-time with the arguments
 provided and then called, while 'run' simply calls an already existing instance of a Rack application.
@@ -174,7 +177,7 @@ provided and then called, while 'run' simply calls an already existing instance 
 For example, in a Rails app you can 'cd' into the app and run the command 'rake middleware' to see what middleware
 Rails is using:
 
-`
+```Ruby
 $ cd my-rails-app
 $ rake middleware
 use ActionDispatch::Static
@@ -189,24 +192,24 @@ use Rails::Rack::Logger
 .
 use ActionDispatch::BestStandardsSupport
 run MyRailsApp::Application.routes
-`
+```
 
 Every request that comes into this app starts at the top of this stack, bubbles its way down, hits the router
 at the bottom, which dispatches to a controller that generates some kind of response (usually some HTML),
 which then bubbles its way back up through the stack before being sent back to the browser.
 
-`
+```Ruby
 use Middleware1
 use Middleware2
 use Middleware3
 run MyApp
 
 #=> Boils down to Middleware1.new(Middleware2.new(Middleware3.new(MyApp)))
-`
+```
 
 Behind the scenes the code looks something lie this:
 
-`
+```Ruby
 class ParamsParser
   def initialize(app)
     @app = app
@@ -228,7 +231,7 @@ class HelloWorldApp
     [200, {}, env['params'].inspect]
   end
 end
-`
+```
 
 Middleware Stack
 ----------------
@@ -236,13 +239,13 @@ Rack::Builder helps creating a middleware stack. It wraps one Rack middleware ar
 then around a given Rack application. Each object is instantiated with the next one, following in
 the stack as a parameter, creating a final Rack application.
 
-`
+```Ruby
 app = Rack::Builder.new do
   use Rack::Etag		# Add an ETag
   use Rack::Deflator	# Compress
   run FancyRackApp		# User-defined logic
 end
-`
+```
 
 The code inside rackup configuration file is wrapped around with a Rack::Builder instance.
 
@@ -252,10 +255,10 @@ Rack::Cascade provides a way to combine Rack applications as a sequence. It take
 as an argument. When a new request arrives, it will try to use the first Rack app in the array, if it gets a 404
 response it will move to the next one.
 
-`
+```Ruby
 require "rack_app"
 run Rack::Cascade.new([Rack::File.new("public"), FancyRackApp])
-`
+```
 
 The first app in our array is Rack::File, which serves static files from the directory provided as an argument.
 If there is a request for a file from public directory, Rack::File will try to look for it. If not found,
@@ -267,7 +270,7 @@ Rack::Request and Rack::Response provide convenient abstractions. The former cla
 information, wrapping *env* hash and the latter makes it easier to generate response triplets.
 Remember to require 'rack'
 
-`
+```Ruby
 # Using Rack::Request
 def call(env)
   req = Rack::Request.new(env)
@@ -282,11 +285,11 @@ def call(env)
   req.xhr?   # an AJAX request ?
   # ... and many more
 end
-`
+```
 
 **It is important to note that modifying Rack::Request instance also modifies underlying env hash.**
 
-`
+```Ruby
 # Using Rack::Response
 
 class Hello
@@ -302,16 +305,16 @@ class Hello
     res.finish							# returns the standard [status, headers, body] array
   end
 end
-`
+```
 
 Reloading
 ---------
 There is a handy Rack middleware which reloads the source of Rack application if it changed.
 
-`
+```Ruby
 use Rack::Reloader, 0
 run RackApp
-`
+```
 
 The only problem is that it only reloads Ruby files. If you have dynamic templates, you can
 take a look at rerun gem.
@@ -321,15 +324,16 @@ Authentication
 Another useful middleware is Rack::Auth::Basic. It can be used to protect our applications
 with Basic HTTP authentication.
 
-`
+```Ruby
 use Rack::Auth::Basic, "Restricted Area" do |username, password|
   [username, password] == ['admin', 'admin']
 end
-`
+```
 
 Rack env hash contents
 -----------------------
-`
+
+```Ruby
 {
 "SERVER_SOFTWARE"=>"thin 1.5.0 codename Knife",
 "SERVER_NAME"=>"localhost",
@@ -357,16 +361,16 @@ Rack env hash contents
 "async.callback"=>#<Method: Thin::Connection#post_process>,
 "async.close"=>#<EventMachine::DefaultDeferrable:0x007ffdec496410>
 }
-`
+```
 
 References
 ----------
-http://rack.rubyforge.org/doc/
-http://www.intridea.com/blog/2010/4/20/rack-middleware-and-applications-whats-the-difference
-http://hawkins.io/2012/07/rack_from_the_beginning/
-http://zaiste.net/2012/08/concisely_about_rack_applications/
-http://net.tutsplus.com/tutorials/exploring-rack/
-http://gauravchande.com/what-is-rack-in-ruby-rails
-http://www.cise.ufl.edu/research/ParallelPatterns/PatternLanguage/AlgorithmStructure/Pipeline.htm
-http://railscasts.com/episodes/151-rack-middleware?view=asciicast
+* http://rack.rubyforge.org/doc/
+* http://www.intridea.com/blog/2010/4/20/rack-middleware-and-applications-whats-the-difference
+* http://hawkins.io/2012/07/rack_from_the_beginning/
+* http://zaiste.net/2012/08/concisely_about_rack_applications/
+* http://net.tutsplus.com/tutorials/exploring-rack/
+* http://gauravchande.com/what-is-rack-in-ruby-rails
+* http://www.cise.ufl.edu/research/ParallelPatterns/PatternLanguage/AlgorithmStructure/Pipeline.htm
+* http://railscasts.com/episodes/151-rack-middleware?view=asciicast
 
